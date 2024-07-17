@@ -2,7 +2,6 @@ import { PayloadAction, createSlice } from '@reduxjs/toolkit';
 import { CurrentUser } from '../../interfaces/user.interface';
 import { getLocalStorage } from "../../utils";
 
-
 const userLocalStorage = getLocalStorage<CurrentUser>('user');
 
 type UserState = {

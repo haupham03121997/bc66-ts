@@ -3,7 +3,6 @@ export interface UserLoginRequest {
   matKhau: string;
 };
 
-
 export interface CurrentUser {
   taiKhoan: string;
   hoTen: string;
@@ -12,4 +11,21 @@ export interface CurrentUser {
   maNhom: string;
   maLoaiNguoiDung: string;
   accessToken: string;
+}
+
+export interface UserItem {
+  taiKhoan: string;
+  matKhau: string;
+  email: string;
+  soDt: string;
+  maNhom: null;
+  maLoaiNguoiDung: string;
+  hoTen: string;
+}
+export interface DataListUser {
+  currentPage: number;
+  count: number;
+  totalPages: number;
+  totalCount: number;
+  items: UserItem[];
 }
