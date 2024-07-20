@@ -4,22 +4,23 @@ import {
   SettingOutlined,
   UploadOutlined,
   UserOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import { Button, Layout, Menu, theme } from 'antd';
 import React, { FC, useState } from 'react';
-import { useNavigate } from "react-router-dom";
-import { PATH } from "../../routes/path";
-
+import { useLocation, useNavigate } from 'react-router-dom';
+import { PATH } from '../../routes/path';
 
 interface AdminLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 const { Header, Sider, Content } = Layout;
 
-const AdminLayout : FC<AdminLayoutProps> = ({ children}) => {
+const AdminLayout: FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
   const [collapsed, setCollapsed] = useState(false);
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -33,9 +34,9 @@ const AdminLayout : FC<AdminLayoutProps> = ({ children}) => {
         <Menu
           theme="dark"
           mode="inline"
-          defaultSelectedKeys={[PATH.ADMIN_USER]}
+          defaultSelectedKeys={[pathname || PATH.ADMIN_USER]}
           onSelect={(item) => {
-            navigate(item.key)
+            navigate(item.key);
           }}
           items={[
             {
@@ -44,7 +45,7 @@ const AdminLayout : FC<AdminLayoutProps> = ({ children}) => {
               label: 'User management',
             },
             {
-              key:  PATH.ADMIN_MOVIE,
+              key: PATH.ADMIN_MOVIE,
               icon: <VideoCameraOutlined />,
               label: 'Movie Management',
             },
@@ -81,14 +82,14 @@ const AdminLayout : FC<AdminLayoutProps> = ({ children}) => {
             minHeight: 280,
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
-            overflowY: 'scroll'
+            overflowY: 'scroll',
           }}
         >
           {children}
         </Content>
       </Layout>
     </Layout>
-  )
-}
+  );
+};
 
-export default AdminLayout
+export default AdminLayout;
