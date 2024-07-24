@@ -1,59 +1,44 @@
-import { ClockCircleOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Breadcrumb,
-  Button,
-  Checkbox,
-  Col,
-  DatePicker,
-  Form,
-  Input,
-  Modal,
-  Pagination,
-  Radio,
-  Rate,
-  Row,
-  Table,
-  Tag,
-  Typography,
-  Upload,
-} from 'antd';
+import { ClockCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Breadcrumb, Button, Pagination, Popconfirm, Rate, Table, Tag, Typography } from 'antd';
 import { format } from 'date-fns';
 import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
 import { movieApi } from '../../../apis/movie.api';
+import { useListMovies } from '../../../hooks/useListMovies';
+import { useOpenModal } from '../../../hooks/useOpenModal';
 import { MovieItem } from '../../../interfaces/movie.interface';
-
-interface FormValues {
-  tenPhim: string;
-  trailer: string;
-  moTa: string;
-  trangThai: boolean;
-  hot: boolean;
-  danhGia: string;
-  ngayKhoiChieu: string;
-  hinhAnh: any;
-}
+import AddOrEditMovieModal, { FormValues } from './AddOrEditMovieModal';
 
 const MovieManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [isOpenModal, setIsOpenModal] = useState(false);
+  const { isOpen, openModal, closeModal } = useOpenModal();
+  const queryClient = useQueryClient();
 
-  const { handleSubmit, control, setValue, watch } = useForm<FormValues>({
-    defaultValues: {
-      tenPhim: '',
-      trailer: '',
-      moTa: '',
-      trangThai: false,
-      hot: false,
-      danhGia: '',
-      ngayKhoiChieu: '',
-      hinhAnh: undefined,
+  const { data, isLoading, error } = useListMovies(currentPage);
+
+  // add movie
+  const { mutate: handleAddMovieApi, isPending } = useMutation({
+    mutationFn: (payload: any) => movieApi.addMovie(payload),
+    onSuccess: (data) => {
+      console.log('data', data);
+    },
+    onError: (error) => {
+      console.log('error', error);
     },
   });
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['list-movies', { currentPage }],
-    queryFn: () => movieApi.getListMovies({ page: currentPage }),
+
+  // delete movie
+  const { mutate: handleDeleteMovieApi, isPending: isDeleting } = useMutation({
+    mutationFn: (idMovie: string) => movieApi.deleteMovie(idMovie),
+    onSuccess: () => {
+      queryClient.refetchQueries({
+        queryKey: ['list-movies', { currentPage }],
+        type: 'active',
+      });
+    },
+    onError: (error) => {
+      console.log('error', error);
+    },
   });
 
   const columns = [
@@ -147,9 +132,19 @@ const MovieManagement = () => {
             <Button type="primary" className="mr-2" onClick={() => alert(record.maPhim)}>
               Edit
             </Button>
-            <Button type="primary" danger onClick={() => alert(record.maPhim)}>
-              Delete
-            </Button>
+            <Popconfirm
+              title="Delete the movie"
+              description="Are you sure to delete this movie?"
+              onConfirm={() => handleDeleteMovieApi(record.maPhim)}
+              onCancel={() => {}}
+              placement="bottom"
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button type="primary" danger disabled={isDeleting}>
+                Delete
+              </Button>
+            </Popconfirm>
           </div>
         );
       },
@@ -159,20 +154,25 @@ const MovieManagement = () => {
   const dataSource = data?.items || [];
   const total = data?.totalCount || 0;
 
-  const watchHinhAnh = watch('hinhAnh');
-
-  console.log('watchHinhAnh', watchHinhAnh);
-
-  const onSubmit = (formValues: FormValues) => {
+  const handleSubmit = (formValues: FormValues) => {
     console.log('formValues', formValues);
-    let formData = new FormData();
+    const formData = new FormData();
+    formData.append('tenPhim', formValues.tenPhim);
+    formData.append('trailer', formValues.trailer);
+    formData.append('danhGia', formValues.danhGia);
+    formData.append('moTa', formValues.moTa);
+    formData.append('hinhAnh', formValues.hinhAnh);
+    formData.append('hot', formValues.hot.toString());
+    formData.append('dangChieu', formValues.trangThai ? 'true' : 'false');
+    formData.append('sapChieu', formValues.trangThai ? 'false' : 'true');
+    formData.append('ngayKhoiChieu', '23/07/2024');
+    formData.append('maNhom', 'GP01');
+    handleAddMovieApi(formData);
   };
 
   if (!isLoading && error) {
     return <div>Something went wrong</div>;
   }
-
-  // we can assume that `isLoading` is false
 
   return (
     <>
@@ -190,7 +190,7 @@ const MovieManagement = () => {
           ]}
         />
 
-        <Button size="large" type="primary" onClick={() => setIsOpenModal(true)}>
+        <Button size="large" type="primary" onClick={openModal}>
           Add Movie
         </Button>
       </div>
@@ -207,153 +207,13 @@ const MovieManagement = () => {
         />
       </div>
 
-      <Modal
-        open={isOpenModal}
-        title={<Typography className="text-2xl font-medium">Add movie</Typography>}
-        centered
-        onCancel={() => setIsOpenModal(false)}
-        footer={false}
-        width={700}
-      >
-        <Form className=" my-4 " onFinish={handleSubmit(onSubmit)}>
-          <Row gutter={[48, 24]}>
-            <Col span={24}>
-              <label className="text-sm">
-                <span className="text-red-600">*</span> Movie name
-              </label>
-              <Controller
-                name="tenPhim"
-                control={control}
-                render={({ field }) => <Input {...field} size="large" placeholder="Movie name" className="mt-1" />}
-              />
-            </Col>
-            <Col span={24}>
-              <label className="text-sm">
-                <span className="text-red-600">*</span> Trailer
-              </label>
-              <Controller
-                name="trailer"
-                control={control}
-                render={({ field }) => <Input {...field} size="large" placeholder="Trailer" className="mt-1" />}
-              />
-            </Col>
-            <Col span={24}>
-              <label className="text-sm">
-                <span className="text-red-600">*</span> Description
-              </label>
-              <Controller
-                name="moTa"
-                control={control}
-                render={({ field }) => (
-                  <Input.TextArea {...field} rows={4} size="large" placeholder="Description" className="mt-1" />
-                )}
-              />
-            </Col>
-            <Col span={24}>
-              <label className="text-sm block">Status</label>
-              <Controller
-                name="trangThai"
-                control={control}
-                render={({ field }) => (
-                  <Radio.Group {...field} className="mt-1" defaultValue={false}>
-                    <Radio value={true}>Showing</Radio>
-                    <Radio value={false}>Coming soon</Radio>
-                  </Radio.Group>
-                )}
-              />
-            </Col>
-            <Col span={24}>
-              <Controller
-                control={control}
-                name="hot"
-                render={({ field }) => (
-                  <Checkbox checked={field.value} {...field}>
-                    Film hot
-                  </Checkbox>
-                )}
-              />
-            </Col>
-            <Col span={12}>
-              <label className="text-sm">
-                <span className="text-red-600">*</span> Rate
-              </label>
-              <Controller
-                control={control}
-                name="danhGia"
-                render={({ field }) => (
-                  <Input {...field} size="large" placeholder="Rate" type="number" className="mt-1" max={10} />
-                )}
-              />
-            </Col>
-            <Col span={12}>
-              <label className="text-sm">
-                <span className="text-red-600">*</span> Release date
-              </label>
-              <Controller
-                name="ngayKhoiChieu"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    {...field}
-                    size="large"
-                    className="mt-1 w-full"
-                    placeholder="DD/MM/YYYY"
-                    format={'DD/MM/YYYY'}
-                  />
-                )}
-              />
-            </Col>
-            <Col span={24}>
-              <Controller
-                control={control}
-                name="hinhAnh"
-                render={({ field: { onChange, ...field } }) => {
-                  return (
-                    <Upload
-                      {...field}
-                      multiple={false}
-                      name="avatar"
-                      listType="picture-card"
-                      className="avatar-uploader"
-                      showUploadList={false}
-                      beforeUpload={() => false}
-                      onChange={(info) => {
-                        onChange(info.file);
-                        // setValue('hinhAnh', info.file);
-                      }}
-                    >
-                      <button style={{ border: 0, background: 'none' }} type="button">
-                        {watchHinhAnh ? (
-                          <div>
-                            <img
-                              className="w-[60px] h-[80px] object-cover"
-                              src={URL.createObjectURL(new Blob([watchHinhAnh]))}
-                            />
-                            {/* icon delete */}
-                          </div>
-                        ) : (
-                          <>
-                            <PlusOutlined />
-                            <div style={{ marginTop: 8 }}>Upload</div>
-                          </>
-                        )}
-                      </button>
-                    </Upload>
-                  );
-                }}
-              />
-            </Col>
-            <Col span={24} className="flex justify-end">
-              <Button size="large" type="default">
-                Cancel
-              </Button>
-              <Button htmlType="submit" size="large" type="primary" className="ml-3">
-                Add movie
-              </Button>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
+      <AddOrEditMovieModal
+        dataEdit={undefined}
+        isOpen={isOpen}
+        isPending={isPending}
+        onCloseModal={closeModal}
+        onSubmit={handleSubmit}
+      />
     </>
   );
 };
