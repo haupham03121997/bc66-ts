@@ -1,7 +1,12 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Col, DatePicker, Form, Input, Modal, Radio, Row, Typography, Upload } from 'antd';
+import { Button, Checkbox, Col, DatePicker, Form, GetProps, Input, Modal, Radio, Row, Typography, Upload } from 'antd';
 import { FC, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import dayjs from 'dayjs';
+import { format } from 'date-fns';
+import { MovieItem } from '../../../interfaces/movie.interface';
+
+type RangePickerProps = GetProps<typeof DatePicker.RangePicker>;
 
 export interface FormValues {
   tenPhim: string;
@@ -10,7 +15,7 @@ export interface FormValues {
   trangThai: boolean;
   hot: boolean;
   danhGia: string;
-  ngayKhoiChieu: string;
+  ngayKhoiChieu: any;
   hinhAnh: any;
 }
 
@@ -19,11 +24,11 @@ interface AddOrEditMovieModalProps {
   onCloseModal: () => void;
   isPending: boolean;
   onSubmit: (formValues: FormValues) => void;
-  dataEdit?: any;
+  dataEdit?: MovieItem;
 }
 
 const AddOrEditMovieModal: FC<AddOrEditMovieModalProps> = ({ isOpen, onCloseModal, isPending, dataEdit, onSubmit }) => {
-  const { handleSubmit, control, setValue, watch } = useForm<FormValues>({
+  const { handleSubmit, control, setValue, watch, reset } = useForm<FormValues>({
     defaultValues: {
       tenPhim: '',
       trailer: '',
@@ -38,20 +43,35 @@ const AddOrEditMovieModal: FC<AddOrEditMovieModalProps> = ({ isOpen, onCloseModa
 
   const watchHinhAnh = watch('hinhAnh');
 
+  const statusMovie = watch('trangThai');
+
+  const disabledDate: RangePickerProps["disabledDate"] = (current) => {
+    return current && current < dayjs().endOf("day");
+  };
+
   useEffect(() => {
     if (dataEdit) {
       setValue('tenPhim', dataEdit.tenPhim);
-      setValue('tenPhim', dataEdit.tenPhim);
-      setValue('tenPhim', dataEdit.tenPhim);
-      setValue('tenPhim', dataEdit.tenPhim);
-      setValue('tenPhim', dataEdit.tenPhim);
+      setValue('trailer', dataEdit.tenPhim);
+      setValue('moTa', dataEdit.moTa);
+      setValue('trangThai', dataEdit.dangChieu);
+      setValue('hot', dataEdit.hot);
+      setValue('danhGia', dataEdit.danhGia.toString());
+      setValue("ngayKhoiChieu", dayjs(new Date(dataEdit.ngayKhoiChieu)));
     }
   }, [dataEdit]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      reset()
+    }
+
+  }, [isOpen]);
 
   return (
     <Modal
       open={isOpen}
-      title={<Typography className="text-2xl font-medium">{dataEdit ? 'Edit movie' : 'Add movie'}</Typography>}
+      title={<Typography className="text-2xl font-medium">{dataEdit ? "Edit movie" : "Add movie"}</Typography>}
       centered
       onCancel={onCloseModal}
       footer={false}
@@ -140,7 +160,8 @@ const AddOrEditMovieModal: FC<AddOrEditMovieModalProps> = ({ isOpen, onCloseModa
                   size="large"
                   className="mt-1 w-full"
                   placeholder="DD/MM/YYYY"
-                  format={'DD/MM/YYYY'}
+                  format={"DD/MM/YYYY"}
+                  disabledDate={!statusMovie ? disabledDate : undefined}
                 />
               )}
             />
@@ -164,19 +185,19 @@ const AddOrEditMovieModal: FC<AddOrEditMovieModalProps> = ({ isOpen, onCloseModa
                       onChange(info.file);
                     }}
                   >
-                    <button style={{ border: 0, background: 'none' }} type="button">
-                      {watchHinhAnh ? (
+                    <button style={{ border: 0, background: "none" }} type="button">
+                      {watchHinhAnh || dataEdit ? (
                         <div>
                           <img
                             className="w-[60px] h-[80px] object-cover"
-                            src={URL.createObjectURL(new Blob([watchHinhAnh]))}
+                            src={dataEdit?.hinhAnh || URL.createObjectURL(new Blob([watchHinhAnh]))}
                           />
 
                           <div
                             className="absolute top-2 right-2 cursor-pointer"
                             onClick={(event) => {
                               event.stopPropagation();
-                              setValue('hinhAnh', undefined);
+                              setValue("hinhAnh", undefined);
                             }}
                           >
                             <DeleteOutlined />
@@ -206,7 +227,7 @@ const AddOrEditMovieModal: FC<AddOrEditMovieModalProps> = ({ isOpen, onCloseModa
               type="primary"
               className="ml-3"
             >
-              Add movie
+              {dataEdit ? "Edit movie" : "Add movie"}
             </Button>
           </Col>
         </Row>

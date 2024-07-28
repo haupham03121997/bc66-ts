@@ -1,8 +1,9 @@
 import { ClockCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb, Button, Pagination, Popconfirm, Rate, Table, Tag, Typography } from 'antd';
-import { format } from 'date-fns';
 import { useState } from 'react';
+import dayjs from 'dayjs';
+
 import { movieApi } from '../../../apis/movie.api';
 import { useListMovies } from '../../../hooks/useListMovies';
 import { useOpenModal } from '../../../hooks/useOpenModal';
@@ -10,15 +11,17 @@ import { MovieItem } from '../../../interfaces/movie.interface';
 import AddOrEditMovieModal, { FormValues } from './AddOrEditMovieModal';
 
 const MovieManagement = () => {
+  
   const [currentPage, setCurrentPage] = useState(1);
+  const [dataEdit, setDataEdit] = useState<MovieItem | undefined>(undefined);
   const { isOpen, openModal, closeModal } = useOpenModal();
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useListMovies(currentPage);
 
   // add movie
-  const { mutate: handleAddMovieApi, isPending } = useMutation({
-    mutationFn: (payload: any) => movieApi.addMovie(payload),
+  const { mutate: handleAddMovieApi, isPending: isCreating } = useMutation({
+    mutationFn: (payload: FormData) => movieApi.addMovie(payload),
     onSuccess: (data) => {
       console.log('data', data);
     },
@@ -76,7 +79,7 @@ const MovieManagement = () => {
       key: 'show-time',
       dataIndex: 'ngayKhoiChieu',
       render: (date: string) => {
-        return <Typography>{format(date, 'dd/MM/yyyy hh:mm a')}</Typography>;
+        return <Typography>{dayjs(new Date(date)).format('dd/MM/yyyy hh:mm a')}</Typography>;
       },
     },
     {
@@ -126,16 +129,19 @@ const MovieManagement = () => {
     {
       title: 'Action',
       key: 'action',
-      render: (record: any) => {
+      render: (record: MovieItem) => {
         return (
           <div className="flex">
-            <Button type="primary" className="mr-2" onClick={() => alert(record.maPhim)}>
+            <Button type="primary" className="mr-2" onClick={()=>{
+              setDataEdit(record);
+              openModal();
+            }}>
               Edit
             </Button>
             <Popconfirm
               title="Delete the movie"
               description="Are you sure to delete this movie?"
-              onConfirm={() => handleDeleteMovieApi(record.maPhim)}
+              onConfirm={() => handleDeleteMovieApi(record.maPhim.toString())}
               onCancel={() => {}}
               placement="bottom"
               okText="Yes"
@@ -165,8 +171,9 @@ const MovieManagement = () => {
     formData.append('hot', formValues.hot.toString());
     formData.append('dangChieu', formValues.trangThai ? 'true' : 'false');
     formData.append('sapChieu', formValues.trangThai ? 'false' : 'true');
-    formData.append('ngayKhoiChieu', '23/07/2024');
+    formData.append('ngayKhoiChieu', dayjs(new Date(formValues.ngayKhoiChieu)).format('DD/MM/YYYY'));
     formData.append('maNhom', 'GP01');
+    // dataEdit ? handleEditMovieApi(formData) : handleAddMovieApi(formData);
     handleAddMovieApi(formData);
   };
 
@@ -181,16 +188,19 @@ const MovieManagement = () => {
           separator=">"
           items={[
             {
-              title: 'Dashboard',
+              title: "Dashboard",
             },
             {
-              title: 'Movie Management',
-              href: '',
+              title: "Movie Management",
+              href: "",
             },
           ]}
         />
 
-        <Button size="large" type="primary" onClick={openModal}>
+        <Button size="large" type="primary" onClick={()=>{
+          openModal();
+          setDataEdit(undefined);
+        }}>
           Add Movie
         </Button>
       </div>
@@ -208,9 +218,9 @@ const MovieManagement = () => {
       </div>
 
       <AddOrEditMovieModal
-        dataEdit={undefined}
+        dataEdit={dataEdit}
         isOpen={isOpen}
-        isPending={isPending}
+        isPending={isCreating}
         onCloseModal={closeModal}
         onSubmit={handleSubmit}
       />

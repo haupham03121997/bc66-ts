@@ -21,7 +21,11 @@ export const movieApi = {
   },
   addMovie: async (payload: FormData) => {
     try {
-      const response = await fetcher.post('/QuanLyPhim/ThemPhimUpLoadHinh', payload);
+      const response = await fetcher.post('/QuanLyPhim/ThemPhimUpLoadHinh', payload , {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return response.data?.content;
     } catch (error: any) {
       throw Error(error.response.data.content);
